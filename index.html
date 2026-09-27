@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chromatography Process — Advanced Interactive Animation</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: radial-gradient(ellipse at top, #141a3a 0%, #0a0e27 60%, #050714 100%);
+    color: #e0e6f0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    padding: 16px;
+    overflow-x: hidden;
+  }
+
+  .container { max-width: 1400px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 14px; }
+
+  h1 {
+    font-size: clamp(1.4em, 3.5vw, 2.2em);
+    background: linear-gradient(90deg, #64f3a1 0%, #4dabf7 50%, #c084fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+
+  .subtitle { color: #8b95a8; font-size: 0.88em; }
+
+  /* Controls */
+  .controls {
+    display: flex; justify-content: center; align-items: center;
+    gap: 14px; flex-wrap: wrap;
+    margin: 10px 0;
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+  }
+
+  button {
+    background: linear-gradient(135deg, #4dabf7, #3b82f6);
+    color: white; border: none;
+    padding: 8px 18px;
+    border-radius: 8px; cursor: pointer;
+    font-size: 0.88em; font-weight: 600;
+    transition: all 0.18s;
+    box-shadow: 0 2px 8px rgba(77, 171, 247, 0.25);
+  }
+  button:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(77, 171, 247, 0.45); }
+  button:active { transform: translateY(0); }
+  button.secondary { background: linear-gradient(135deg, #6b7280, #4b5563); box-shadow: 0 2px 8px rgba(107, 114, 128, 0.25); }
+
+  .speed-control { display: flex; align-items: center; gap: 8px; color: #b0b8c8; font-size: 0.88em; }
+  input[type="range"] { accent-color: #4dabf7; cursor: pointer; vertical-align: middle; }
+  #speedLabel { color: #64f3a1; font-weight: 600; min-width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* Toggle button group */
+  .toggle-group {
+    display: inline-flex;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 8px;
+    padding: 2px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .toggle-group button {
+    background: transparent;
+    color: #8b95a8;
+    box-shadow: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+  }
+  .toggle-group button.active {
+    background: linear-gradient(135deg, #4dabf7, #3b82f6);
+    color: white;
+    box-shadow: 0 2px 6px rgba(77, 171, 247, 0.4);
+  }
+
+  .control-group { display: flex; align-items: center; gap: 6px; color: #b0b8c8; font-size: 0.88em; }
+  .control-group > label { font-weight: 600; color: #c0c8d8; }
+
+  .k-slider { display: flex; align-items: center; gap: 4px; font-size: 0.85em; }
+  .k-slider .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    box-shadow: 0 0 6px currentColor;
+  }
+  .k-slider input[type="range"] { width: 80px; }
+  .k-slider .val {
+    color: #e0e6f0; min-width: 28px; text-align: right;
+    font-variant-numeric: tabular-nums; font-weight: 600;
+  }
+
+  /* Stage indicator */
+  .stages {
+    display: flex; justify-content: center;
+    gap: 6px; flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .stage {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.82em;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #6b7280;
+    transition: all 0.35s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .stage.active {
+    background: linear-gradient(135deg, rgba(77, 171, 247, 0.25), rgba(192, 132, 252, 0.25));
+    border-color: rgba(100, 243, 161, 0.45);
+    color: #e0e6f0;
+    box-shadow: 0 0 22px rgba(77, 171, 247, 0.28);
+  }
+  .stage .num {
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 50%;
+    width: 18px; height: 18px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.76em; font-weight: 700;
+  }
+  .stage.active .num { background: rgba(100, 243, 161, 0.2); color: #64f3a1; }
+
+  /* Canvas wrappers */
+  .canvas-wrapper, .chromatogram-wrapper, .zoom-wrapper {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  canvas { display: block; width: 100%; height: auto; border-radius: 8px; }
+
+  .panel-title {
+    color: #c0c8d8; font-size: 0.88em;
+    margin-bottom: 4px;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 8px;
+  }
+
+  .legend { display: flex; gap: 12px; font-size: 0.8em; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; color: #b0b8c8; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* Info panel */
+  .info-panel {
+    background: linear-gradient(135deg, rgba(77, 171, 247, 0.04), rgba(192, 132, 252, 0.04));
+    border: 1px solid rgba(100, 243, 161, 0.15);
+    border-radius: 12px;
+    padding: 12px 18px;
+    line-height: 1.55;
+  }
+  .info-panel h3 {
+    color: #64f3a1; margin-bottom: 6px;
+    font-size: 0.98em; letter-spacing: 0.01em;
+  }
+  .info-panel p { color: #b0b8c8; font-size: 0.88em; }
+
+  .stats { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 8px; font-size: 0.8em; color: #8b95a8; }
+  .stats b { color: #e0e6f0; font-variant-numeric: tabular-nums; }
+
+  /* Gradient bar (mobile phase strength indicator) */
+  #gradientBar {
+    display: none;
+    height: 8px;
+    border-radius: 4px;
+    margin-top: 6px;
+    background: linear-gradient(90deg, rgba(100,160,255,0.6), rgba(255,180,80,0.7));
+    position: relative;
+    overflow: hidden;
+  }
+  #gradientBar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(255,180,80,0.7) var(--grad-pos, 0%), transparent var(--grad-pos, 0%));
+    transition: background 0.1s;
+  }
+  #gradientBar.visible { display: block; }
+  .gradient-label {
+    font-size: 0.75em; color: #8b95a8; margin-top: 4px;
+    display: flex; justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Chromatography Process — Advanced Interactive Animation</h1>
+    <div class="subtitle">Adjustable retention · GC vs HPLC · isocratic vs gradient · molecular-level partitioning view</div>
+  </header>
+
+  <!-- Row 1: Playback controls -->
+  <div class="controls">
+    <button id="playBtn">▶ Play</button>
+    <button id="resetBtn" class="secondary">↻ Reset</button>
+    <div class="speed-control">
+      <label>Speed:</label>
+      <input type="range" id="speedSlider" min="0.25" max="3" step="0.25" value="1">
+      <span id="speedLabel">1.00×</span>
+    </div>
+    <div class="control-group">
+      <label>Mode:</label>
+      <div class="toggle-group" id="modeToggle">
+        <button data-mode="HPLC" class="active">HPLC</button>
+        <button data-mode="GC">GC</button>
+      </div>
+    </div>
+    <div class="control-group">
+      <label>Elution:</label>
+      <div class="toggle-group" id="elutionToggle">
+        <button data-elution="isocratic" class="active">Isocratic</button>
+        <button data-elution="gradient">Gradient</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Retention factor sliders -->
+  <div class="controls">
+    <span style="color:#c0c8d8;font-weight:600;font-size:0.88em;">Retention factor k:</span>
+    <div class="k-slider" style="color:#ff6b6b"><span class="dot" style="background:#ff6b6b"></span><label>A</label><input type="range" id="kSlider-0" min="0.05" max="1.5" step="0.05" value="0.25"><span class="val" id="kLabel-0">0.25</span></div>
+    <div class="k-slider" style="color:#51cf66"><span class="dot" style="background:#51cf66"></span><label>B</label><input type="range" id="kSlider-1" min="0.3" max="3.5" step="0.05" value="1.10"><span class="val" id="kLabel-1">1.10</span></div>
+    <div class="k-slider" style="color:#4dabf7"><span class="dot" style="background:#4dabf7"></span><label>C</label><input type="range" id="kSlider-2" min="0.8" max="5.5" step="0.1" value="2.20"><span class="val" id="kLabel-2">2.20</span></div>
+    <div class="k-slider" style="color:#fcc419"><span class="dot" style="background:#fcc419"></span><label>D</label><input type="range" id="kSlider-3" min="1.5" max="9.0" step="0.1" value="3.60"><span class="val" id="kLabel-3">3.60</span></div>
+    <button id="resetKBtn" class="secondary" style="padding:6px 12px;font-size:0.82em;">Reset k</button>
+  </div>
+
+  <div class="stages">
+    <div class="stage" id="stage-injection"><span class="num">1</span> Injection</div>
+    <div class="stage" id="stage-phases"><span class="num">2</span> Phases</div>
+    <div class="stage" id="stage-separation"><span class="num">3</span> Separation</div>
+    <div class="stage" id="stage-detection"><span class="num">4</span> Detection</div>
+    <div class="stage" id="stage-plotter"><span class="num">5</span> Plotter</div>
+  </div>
+
+  <div class="canvas-wrapper">
+    <div class="panel-title">
+      <span id="mainCanvasTitle">Chromatographic system — HPLC mode (isocratic)</span>
+      <span id="modeLabel" style="color:#8b95a8;font-size:0.8em"></span>
+    </div>
+    <canvas id="mainCanvas" width="1320" height="360"></canvas>
+    <div id="gradientBar"></div>
+    <div class="gradient-label" id="gradientLabel" style="display:none">
+      <span>%B (strong solvent): <b id="gradPctB">5%</b></span>
+      <span>ramp: 5% → 95% over run</span>
+    </div>
+  </div>
+
+  <div class="zoom-wrapper">
+    <div class="panel-title">
+      <span>Molecular View — Partitioning Equilibrium (Mobile ⇌ Stationary)</span>
+      <span style="color:#8b95a8;font-size:0.8em">each cell shows live phase distribution for one component</span>
+    </div>
+    <canvas id="zoomCanvas" width="1320" height="340"></canvas>
+  </div>
+
+  <div class="chromatogram-wrapper">
+    <div class="panel-title">
+      <span>Chromatogram — Detector Signal vs. Time</span>
+      <div class="legend" id="legend"></div>
+    </div>
+    <canvas id="plotCanvas" width="1320" height="200"></canvas>
+  </div>
+
+  <div class="info-panel">
+    <h3 id="infoTitle">Stage: Injection</h3>
+    <p id="infoText">Click <b>Play</b> to start.</p>
+    <div class="stats">
+      <span>Time: <b id="statTime">0.0 s</b></span>
+      <span>In column: <b id="statActive">0</b></span>
+      <span>Detected: <b id="statDetected">0</b></span>
+      <span>Peaks resolved: <b id="statPeaks">0</b> / 4</span>
+      <span>v_mobile: <b id="statVflow">3.2</b> px/f</span>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ===================================================================== *
+ *  Canvas setup (high-DPI aware)
+ * ===================================================================== */
+const mainCanvas = document.getElementById('mainCanvas');
+const mainCtx = mainCanvas.getContext('2d');
+const plotCanvas = document.getElementById('plotCanvas');
+const plotCtx = plotCanvas.getContext('2d');
+const zoomCanvas = document.getElementById('zoomCanvas');
+const zoomCtx = zoomCanvas.getContext('2d');
+
+function configureHiDPI(canvas, ctx) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.width, h = canvas.height;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.aspectRatio = `${w} / ${h}`;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  canvas._logicalW = w;
+  canvas._logicalH = h;
+}
+configureHiDPI(mainCanvas, mainCtx);
+configureHiDPI(plotCanvas, plotCtx);
+configureHiDPI(zoomCanvas, zoomCtx);
+
+/* ===================================================================== *
+ *  Geometry (main canvas)
+ * ===================================================================== */
+const W = mainCanvas._logicalW, H = mainCanvas._logicalH;
+const COL_START   = 175;
+const COL_END     = 1175;
+const COL_Y       = 195;
+const COL_HEIGHT_DEFAULT = 64;
+const DETECTOR_X  = 1190;
+const DETECTOR_W  = 80;
+const DETECTOR_TRIGGER_X = COL_END + 5;
+const FLOW_SPEED  = 3.2;  // px/frame at 1× speed
+
+/* ===================================================================== *
+ *  Molecule types (retention factors adjustable)
+ * ===================================================================== */
+const DEFAULT_K = [0.25, 1.10, 2.20, 3.60];
+const MOLECULE_TYPES = [
+  { name: 'A', color: '#ff6b6b', glow: '#ff9494', label: 'Fastest — low affinity' },
+  { name: 'B', color: '#51cf66', glow: '#7bed9f', label: 'Medium-fast' },
+  { name: 'C', color: '#4dabf7', glow: '#74c0fc', label: 'Medium-slow' },
+  { name: 'D', color: '#fcc419', glow: '#ffe066', label: 'Slowest — high affinity' },
+];
+let retentionFactors = [...DEFAULT_K];
+const PER_TYPE = 22;
+
+/* ===================================================================== *
+ *  Mode descriptors: GC vs HPLC
+ * ===================================================================== */
+const MODES = {
+  HPLC: {
+    label: 'HPLC — High-Performance Liquid Chromatography',
+    mobile: 'Mobile phase: MeCN / H₂O (liquid)',
+    stationary: 'Stationary phase: C18 silica (packed particles)',
+    columnHeight: 64,
+    packing: true,
+    particleColor: 'rgba(160, 130, 220, 0.22)',
+    coatingColor: 'rgba(192, 132, 252, 0.20)',
+    flowArrowColor: 'rgba(77, 171, 247, 0.18)',
+    mobilePhaseTint: 'rgba(77, 171, 247, 0.05)',
+    columnBg: 'rgba(40, 50, 100, 0.5)',
+  },
+  GC: {
+    label: 'GC — Gas Chromatography',
+    mobile: 'Mobile phase: He / N₂ (carrier gas)',
+    stationary: 'Stationary phase: thin polymer film (capillary wall coat)',
+    columnHeight: 38,
+    packing: false,
+    particleColor: 'rgba(160, 130, 220, 0)',
+    coatingColor: 'rgba(192, 132, 252, 0.32)',
+    flowArrowColor: 'rgba(255, 200, 120, 0.20)',
+    mobilePhaseTint: 'rgba(255, 200, 120, 0.04)',
+    columnBg: 'rgba(50, 50, 80, 0.4)',
+  },
+};
+
+/* ===================================================================== *
+ *  State
+ * ===================================================================== */
+let mode = 'HPLC';
+let elution = 'isocratic';
+let molecules = [];
+let signalData = [];
+let time = 0;
+let playing = false;
+let speed = 1.0;
+let lastFrameTime = performance.now();
+let peakStarted = [false, false, false, false];
+let peakEnded   = [false, false, false, false];
+
+/* Zoom-view molecules: independent population to visualize partitioning */
+let zoomMolecules = []; // array per type, each entry: {phase:0|1, x, y, phaseTimer}
+
+/* ===================================================================== *
+ *  Helpers
+ * ===================================================================== */
+function getColHeight() { return MODES[mode].columnHeight; }
+function getColTop() { return COL_Y - getColHeight()/2; }
+function getColBottom() { return COL_Y + getColHeight()/2; }
+
+/* Mobile phase "strength" — affects effective k (gradient elution) */
+function getStrength(t) {
+  if (elution === 'isocratic') return 1.0;
+  // Gradient: ramps from 0.4 to 2.2 over ~1000 frames
+  const rampEnd = 1000;
+  const frac = Math.min(t / rampEnd, 1);
+  return 0.4 + frac * 1.8;
+}
+
+function getEffectiveK(typeIdx, t) {
+  return retentionFactors[typeIdx] / getStrength(t);
+}
+
+function getMobilePhasePercentB(t) {
+  if (elution === 'isocratic') return 50;
+  const frac = Math.min(t / 1000, 1);
+  return Math.round(5 + frac * 90);
+}
+
+/* ===================================================================== *
+ *  Init / Reset
+ * ===================================================================== */
+function inject() {
+  molecules = [];
+  MOLECULE_TYPES.forEach((type, ti) => {
+    for (let i = 0; i < PER_TYPE; i++) {
+      molecules.push({
+        type: ti,
+        x: COL_START + 4 + Math.random() * 14,
+        y: COL_Y + (Math.random() - 0.5) * (getColHeight() - 12),
+        vy: (Math.random() - 0.5) * 0.4,
+        active: true,
+        // small per-molecule variation in retention
+        kFactor: 0.88 + Math.random() * 0.24,
+      });
+    }
+  });
+  signalData = [];
+  peakStarted = [false, false, false, false];
+  peakEnded   = [false, false, false, false];
+  time = 0;
+  initZoomMolecules();
+}
+
+function initZoomMolecules() {
+  zoomMolecules = MOLECULE_TYPES.map((type, ti) => {
+    const arr = [];
+    const count = 14;
+    // distribute roughly based on equilibrium
+    const k = retentionFactors[ti];
+    const statFrac = k / (1 + k);
+    for (let i = 0; i < count; i++) {
+      const phase = Math.random() < statFrac ? 1 : 0;
+      arr.push({
+        phase,
+        // position will be assigned at draw time relative to the cell
+        localX: Math.random(),
+        localY: Math.random(),
+        phaseTimer: Math.random() * 30,
+        vx: 0.4 + Math.random() * 0.4,  // per-molecule mobile-phase drift speed
+      });
+    }
+    return arr;
+  });
+}
+
+function reset() {
+  inject();
+  playing = false;
+  updatePlayButton();
+}
+
+function updatePlayButton() {
+  const btn = document.getElementById('playBtn');
+  const activeCount = molecules.filter(m => m.active).length;
+  if (activeCount === 0 && time > 5) btn.textContent = '↻ Replay';
+  else if (playing) btn.textContent = '⏸ Pause';
+  else btn.textContent = '▶ Play';
+}
+
+/* ===================================================================== *
+ *  Simulation step
+ * ===================================================================== */
+function step(dt) {
+  if (!playing) return;
+  time += dt * speed;
+  const strength = getStrength(time);
+
+  molecules.forEach(m => {
+    if (!m.active) return;
+    const baseK = retentionFactors[m.type] * m.kFactor;
+    const effectiveK = baseK / strength;
+    const v = FLOW_SPEED * speed * dt / (1 + effectiveK);
+    m.x += v;
+
+    m.vy += (Math.random() - 0.5) * 0.5 * dt;
+    m.vy *= 0.93;
+    m.y += m.vy * speed * dt;
+
+    const top = getColTop(), bot = getColBottom();
+    if (m.y < top + 5) { m.y = top + 5; m.vy = Math.abs(m.vy) * 0.5; }
+    if (m.y > bot - 5) { m.y = bot - 5; m.vy = -Math.abs(m.vy) * 0.5; }
+
+    if (m.x >= DETECTOR_TRIGGER_X) {
+      m.active = false;
+      signalData.push({ time: time, type: m.type });
+      peakStarted[m.type] = true;
+    }
+  });
+
+  // Detect peak end (no detection for 30 frames after last for that type)
+  MOLECULE_TYPES.forEach((t, ti) => {
+    if (peakStarted[ti] && !peakEnded[ti]) {
+      const last = signalData.filter(d => d.type === ti).slice(-1)[0];
+      if (last && time - last.time > 30) peakEnded[ti] = true;
+    }
+  });
+
+  const active = molecules.filter(m => m.active).length;
+  if (active === 0 && time > 50) {
+    playing = false;
+    updatePlayButton();
+  }
+
+  // Update zoom molecules (phase partitioning)
+  stepZoom(dt);
+}
+
+function stepZoom(dt) {
+  zoomMolecules.forEach((arr, ti) => {
+    const k = retentionFactors[ti];
+    // probabilities per frame of switching phase (kinetics)
+    // equilibrium: stationary / mobile = k
+    // so p(mobile→stat) / p(stat→mobile) = k
+    const pStatToMobile = 0.012 * speed * dt;
+    const pMobileToStat = pStatToMobile * k;
+    arr.forEach(zm => {
+      zm.phaseTimer += dt * speed;
+      if (zm.phase === 0) {
+        // mobile: drift right (localX)
+        zm.localX += zm.vx * 0.005 * speed * dt;
+        if (zm.localX > 1) zm.localX -= 1;
+        if (Math.random() < pMobileToStat) zm.phase = 1;
+      } else {
+        // stationary: vibrate in place
+        zm.localY += (Math.random() - 0.5) * 0.003 * dt;
+        zm.localY = Math.max(0, Math.min(1, zm.localY));
+        if (Math.random() < pStatToMobile) zm.phase = 0;
+      }
+    });
+  });
+}
+
+/* ===================================================================== *
+ *  Draw main canvas
+ * ===================================================================== */
+function drawMain() {
+  const w = W, h = H;
+  const m = MODES[mode];
+
+  // Background
+  const bg = mainCtx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#0c1230');
+  bg.addColorStop(1, '#050714');
+  mainCtx.fillStyle = bg;
+  mainCtx.fillRect(0, 0, w, h);
+
+  // grid
+  mainCtx.strokeStyle = 'rgba(255,255,255,0.025)';
+  mainCtx.lineWidth = 1;
+  for (let x = 0; x < w; x += 40) { mainCtx.beginPath(); mainCtx.moveTo(x, 0); mainCtx.lineTo(x, h); mainCtx.stroke(); }
+  for (let y = 0; y < h; y += 40) { mainCtx.beginPath(); mainCtx.moveTo(0, y); mainCtx.lineTo(w, y); mainCtx.stroke(); }
+
+  drawFlowArrows(m);
+  drawInjectionPort();
+  drawColumn(m);
+  drawDetector();
+
+  molecules.forEach(mol => { if (mol.active) drawMolecule(mol); });
+
+  mainCtx.fillStyle = 'rgba(255,255,255,0.25)';
+  mainCtx.font = 'bold 10px sans-serif';
+  mainCtx.textAlign = 'left';
+  mainCtx.fillText(m.label, 12, 18);
+}
+
+function drawInjectionPort() {
+  const sx = 25, sy = COL_Y;
+
+  // Plunger
+  mainCtx.fillStyle = '#5a6478';
+  mainCtx.fillRect(sx, sy - 18, 10, 6);
+  mainCtx.fillRect(sx + 2, sy - 14, 6, 28);
+
+  // Barrel
+  mainCtx.fillStyle = 'rgba(100, 110, 140, 0.55)';
+  mainCtx.strokeStyle = '#8b95a8';
+  mainCtx.lineWidth = 1.5;
+  mainCtx.beginPath();
+  mainCtx.roundRect(sx + 12, sy - 14, 60, 28, 3);
+  mainCtx.fill(); mainCtx.stroke();
+
+  // Sample (mixed colors)
+  const sampleGrad = mainCtx.createLinearGradient(sx + 14, 0, sx + 70, 0);
+  sampleGrad.addColorStop(0,    'rgba(255, 107, 107, 0.55)');
+  sampleGrad.addColorStop(0.33, 'rgba(81, 207, 102, 0.55)');
+  sampleGrad.addColorStop(0.66, 'rgba(77, 171, 247, 0.55)');
+  sampleGrad.addColorStop(1,    'rgba(252, 196, 25, 0.55)');
+  mainCtx.fillStyle = sampleGrad;
+  mainCtx.fillRect(sx + 16, sy - 10, 54, 20);
+
+  // Needle
+  mainCtx.strokeStyle = '#b0b8c8';
+  mainCtx.lineWidth = 2;
+  mainCtx.beginPath();
+  mainCtx.moveTo(sx + 72, sy);
+  mainCtx.lineTo(COL_START - 4, sy);
+  mainCtx.stroke();
+
+  // Septum
+  const cTop = getColTop(), cBot = getColBottom();
+  mainCtx.fillStyle = '#4a3548';
+  mainCtx.fillRect(COL_START - 8, cTop - 12, 14, (cBot - cTop) + 24);
+  mainCtx.strokeStyle = '#8a5a88';
+  mainCtx.lineWidth = 1.2;
+  mainCtx.strokeRect(COL_START - 8, cTop - 12, 14, (cBot - cTop) + 24);
+  mainCtx.strokeStyle = 'rgba(180, 100, 180, 0.3)';
+  mainCtx.beginPath();
+  mainCtx.moveTo(COL_START - 8, cTop); mainCtx.lineTo(COL_START + 6, cTop);
+  mainCtx.moveTo(COL_START - 8, COL_Y); mainCtx.lineTo(COL_START + 6, COL_Y);
+  mainCtx.moveTo(COL_START - 8, cBot); mainCtx.lineTo(COL_START + 6, cBot);
+  mainCtx.stroke();
+
+  mainCtx.fillStyle = '#64f3a1';
+  mainCtx.font = 'bold 11px sans-serif';
+  mainCtx.textAlign = 'center';
+  mainCtx.fillText('INJECTOR', sx + 42, sy - 26);
+  mainCtx.fillStyle = '#8b95a8';
+  mainCtx.font = '10px sans-serif';
+  mainCtx.fillText('sample +', sx + 42, sy + 38);
+  mainCtx.fillText('syringe', sx + 42, sy + 50);
+}
+
+function drawColumn(m) {
+  const cTop = getColTop(), cBot = getColBottom(), colH = cBot - cTop;
+
+  // Outer shadow
+  mainCtx.fillStyle = 'rgba(20, 25, 50, 0.7)';
+  mainCtx.fillRect(COL_START, cTop - 3, COL_END - COL_START, colH + 6);
+
+  // Interior
+  const grad = mainCtx.createLinearGradient(0, cTop, 0, cBot);
+  grad.addColorStop(0,    'rgba(70, 60, 130, 0.35)');
+  grad.addColorStop(0.12, 'rgba(50, 45, 100, 0.10)');
+  grad.addColorStop(0.5,  m.mobilePhaseTint);
+  grad.addColorStop(0.88, 'rgba(50, 45, 100, 0.10)');
+  grad.addColorStop(1,    'rgba(70, 60, 130, 0.35)');
+  mainCtx.fillStyle = grad;
+  mainCtx.fillRect(COL_START, cTop, COL_END - COL_START, colH);
+
+  // Stationary phase coating
+  mainCtx.fillStyle = m.coatingColor;
+  const coatThick = m === MODES.GC ? 4 : 6;
+  mainCtx.fillRect(COL_START, cTop, COL_END - COL_START, coatThick);
+  mainCtx.fillRect(COL_START, cBot - coatThick, COL_END - COL_START, coatThick);
+
+  // Packed particles (HPLC only)
+  if (m.packing) {
+    mainCtx.fillStyle = m.particleColor;
+    for (let x = COL_START + 6; x < COL_END - 4; x += 11) {
+      for (let y = cTop + 10; y < cBot - 6; y += 11) {
+        const rowOffset = (Math.floor((y - cTop) / 11) % 2) * 5.5;
+        const px = x + rowOffset;
+        const r = 1.6 + ((px * 7 + y * 3) % 5) / 4;
+        mainCtx.beginPath();
+        mainCtx.arc(px, y, r, 0, Math.PI * 2);
+        mainCtx.fill();
+      }
+    }
+  }
+
+  // Border
+  mainCtx.strokeStyle = 'rgba(140, 150, 180, 0.7)';
+  mainCtx.lineWidth = 2;
+  mainCtx.strokeRect(COL_START, cTop, COL_END - COL_START, colH);
+
+  // Labels
+  mainCtx.fillStyle = 'rgba(192, 132, 252, 0.85)';
+  mainCtx.font = 'bold 10px sans-serif';
+  mainCtx.textAlign = 'left';
+  mainCtx.fillText('◀ STATIONARY PHASE', COL_START + 8, cTop - 8);
+
+  mainCtx.fillStyle = m.flowArrowColor.replace('0.18', '0.95').replace('0.20', '0.95');
+  mainCtx.textAlign = 'right';
+  mainCtx.fillText('MOBILE PHASE →', COL_END - 8, cTop - 8);
+
+  mainCtx.fillStyle = 'rgba(160, 170, 200, 0.7)';
+  mainCtx.font = '10px sans-serif';
+  mainCtx.textAlign = 'center';
+  mainCtx.fillText(m.stationary, (COL_START + COL_END) / 2, cBot + 20);
+}
+
+function drawFlowArrows(m) {
+  const cTop = getColTop(), cBot = getColBottom();
+  const arrowCount = 9;
+  const spacing = (COL_END - COL_START - 30) / arrowCount;
+  const phase = (time * 1.5 * speed) % spacing;
+  for (let i = 0; i < arrowCount; i++) {
+    let x = COL_START + 20 + i * spacing + phase;
+    if (x > COL_START + 10 && x < COL_END - 12) {
+      mainCtx.strokeStyle = m.flowArrowColor;
+      mainCtx.lineWidth = 1;
+      mainCtx.beginPath();
+      mainCtx.moveTo(x, COL_Y - 4);
+      mainCtx.lineTo(x + 7, COL_Y);
+      mainCtx.lineTo(x, COL_Y + 4);
+      mainCtx.stroke();
+    }
+  }
+}
+
+function drawDetector() {
+  const cTop = getColTop(), cBot = getColBottom();
+  const dx = DETECTOR_X, dy = cTop - 30;
+  const dw = DETECTOR_W, dh = (cBot - cTop) + 60;
+
+  // Body
+  mainCtx.fillStyle = 'rgba(45, 55, 80, 0.85)';
+  mainCtx.fillRect(dx, dy, dw, dh);
+
+  // Glowing border
+  mainCtx.strokeStyle = '#64f3a1';
+  mainCtx.lineWidth = 2;
+  mainCtx.shadowColor = '#64f3a1';
+  mainCtx.shadowBlur = 8;
+  mainCtx.strokeRect(dx, dy, dw, dh);
+  mainCtx.shadowBlur = 0;
+
+  // Sensor window
+  mainCtx.fillStyle = 'rgba(100, 243, 161, 0.15)';
+  mainCtx.fillRect(dx, COL_Y - 11, 14, 22);
+
+  // Sensor beam
+  mainCtx.strokeStyle = 'rgba(100, 243, 161, 0.55)';
+  mainCtx.lineWidth = 1.5;
+  mainCtx.setLineDash([3, 4]);
+  mainCtx.beginPath();
+  mainCtx.moveTo(dx + 7, dy + 12);
+  mainCtx.lineTo(dx + 7, dy + dh - 12);
+  mainCtx.stroke();
+  mainCtx.setLineDash([]);
+
+  // Pulse on detection
+  if (signalData.length > 0) {
+    const last = signalData[signalData.length - 1];
+    const dt = time - last.time;
+    if (dt < 8) {
+      const t = dt / 8;
+      const radius = 8 + t * 30;
+      mainCtx.strokeStyle = `rgba(100, 243, 161, ${0.9 * (1 - t)})`;
+      mainCtx.lineWidth = 2;
+      mainCtx.beginPath();
+      mainCtx.arc(dx + 7, COL_Y, radius, 0, Math.PI * 2);
+      mainCtx.stroke();
+    }
+  }
+
+  mainCtx.fillStyle = '#64f3a1';
+  mainCtx.font = 'bold 11px sans-serif';
+  mainCtx.textAlign = 'center';
+  mainCtx.fillText('DETECTOR', dx + dw/2, dy - 8);
+
+  mainCtx.fillStyle = '#8b95a8';
+  mainCtx.font = '9px sans-serif';
+  const detType = mode === 'GC' ? 'FID / TCD / MS' : 'UV / DAD / MS';
+  mainCtx.fillText(detType, dx + dw/2, dy + dh + 14);
+
+  // Wire to plotter
+  mainCtx.strokeStyle = 'rgba(100, 243, 161, 0.45)';
+  mainCtx.lineWidth = 1.5;
+  mainCtx.setLineDash([4, 4]);
+  const wirePhase = (time * 2 * speed) % 8;
+  mainCtx.lineDashOffset = -wirePhase;
+  mainCtx.beginPath();
+  mainCtx.moveTo(dx + dw, COL_Y);
+  mainCtx.lineTo(W - 12, COL_Y);
+  mainCtx.stroke();
+  mainCtx.setLineDash([]);
+  mainCtx.lineDashOffset = 0;
+
+  mainCtx.fillStyle = '#64f3a1';
+  mainCtx.font = '10px sans-serif';
+  mainCtx.textAlign = 'center';
+  mainCtx.fillText('→ signal → plotter', (dx + dw + W) / 2, COL_Y - 8);
+}
+
+function drawMolecule(m) {
+  const type = MOLECULE_TYPES[m.type];
+  const halo = mainCtx.createRadialGradient(m.x, m.y, 0, m.x, m.y, 10);
+  halo.addColorStop(0, type.glow + 'cc');
+  halo.addColorStop(0.5, type.glow + '44');
+  halo.addColorStop(1, 'rgba(0,0,0,0)');
+  mainCtx.fillStyle = halo;
+  mainCtx.beginPath();
+  mainCtx.arc(m.x, m.y, 10, 0, Math.PI * 2);
+  mainCtx.fill();
+
+  mainCtx.fillStyle = type.color;
+  mainCtx.beginPath();
+  mainCtx.arc(m.x, m.y, 3.2, 0, Math.PI * 2);
+  mainCtx.fill();
+
+  mainCtx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+  mainCtx.beginPath();
+  mainCtx.arc(m.x - 1, m.y - 1, 1, 0, Math.PI * 2);
+  mainCtx.fill();
+}
+
+/* ===================================================================== *
+ *  Draw zoom canvas: partitioning equilibrium
+ * ===================================================================== */
+function drawZoom() {
+  const w = zoomCanvas._logicalW, h = zoomCanvas._logicalH;
+  zoomCtx.fillStyle = '#070a1c';
+  zoomCtx.fillRect(0, 0, w, h);
+
+  // 4 cells side-by-side, one per molecule type
+  const cellW = w / 4;
+  const cellPad = 10;
+  const cellInnerW = cellW - 2 * cellPad;
+
+  MOLECULE_TYPES.forEach((type, ti) => {
+    const cellX = ti * cellW;
+    drawZoomCell(ti, type, cellX + cellPad, 8, cellInnerW, h - 16);
+  });
+}
+
+function drawZoomCell(ti, type, x, y, w, h) {
+  // Title bar
+  zoomCtx.fillStyle = type.color;
+  zoomCtx.font = 'bold 12px sans-serif';
+  zoomCtx.textAlign = 'left';
+  zoomCtx.fillText(`Component ${type.name}`, x, y + 12);
+
+  zoomCtx.fillStyle = '#8b95a8';
+  zoomCtx.font = '10px sans-serif';
+  zoomCtx.textAlign = 'right';
+  zoomCtx.fillText(`k = ${retentionFactors[ti].toFixed(2)}`, x + w, y + 12);
+
+  // Column cross-section area
+  const colTop = y + 22;
+  const colBot = y + h - 70;
+  const colH = colBot - colTop;
+
+  // Mobile phase region (top half)
+  const mobileTop = colTop;
+  const mobileBot = colTop + colH * 0.55;
+  const mobileH = mobileBot - mobileTop;
+
+  const mobGrad = zoomCtx.createLinearGradient(0, mobileTop, 0, mobileBot);
+  mobGrad.addColorStop(0, 'rgba(77, 171, 247, 0.10)');
+  mobGrad.addColorStop(1, 'rgba(77, 171, 247, 0.02)');
+  zoomCtx.fillStyle = mobGrad;
+  zoomCtx.fillRect(x, mobileTop, w, mobileH);
+
+  // Stationary phase region (bottom)
+  const statTop = mobileBot;
+  const statBot = colBot;
+  const statH = statBot - statTop;
+
+  const statGrad = zoomCtx.createLinearGradient(0, statTop, 0, statBot);
+  statGrad.addColorStop(0, 'rgba(192, 132, 252, 0.20)');
+  statGrad.addColorStop(1, 'rgba(192, 132, 252, 0.35)');
+  zoomCtx.fillStyle = statGrad;
+  zoomCtx.fillRect(x, statTop, w, statH);
+
+  // Interface line
+  zoomCtx.strokeStyle = 'rgba(192, 132, 252, 0.6)';
+  zoomCtx.lineWidth = 1;
+  zoomCtx.setLineDash([4, 3]);
+  zoomCtx.beginPath();
+  zoomCtx.moveTo(x, mobileBot);
+  zoomCtx.lineTo(x + w, mobileBot);
+  zoomCtx.stroke();
+  zoomCtx.setLineDash([]);
+
+  // Borders
+  zoomCtx.strokeStyle = 'rgba(140, 150, 180, 0.5)';
+  zoomCtx.lineWidth = 1;
+  zoomCtx.strokeRect(x, colTop, w, colH);
+
+  // Labels
+  zoomCtx.fillStyle = 'rgba(77, 171, 247, 0.85)';
+  zoomCtx.font = '9px sans-serif';
+  zoomCtx.textAlign = 'left';
+  zoomCtx.fillText('MOBILE (flowing →)', x + 4, mobileTop + 12);
+
+  zoomCtx.fillStyle = 'rgba(192, 132, 252, 0.95)';
+  zoomCtx.fillText('STATIONARY (bound)', x + 4, statTop + 12);
+
+  // Draw equilibrium arrows (vertical, between phases)
+  for (let i = 0; i < 4; i++) {
+    const ax = x + (i + 0.5) * w / 4;
+    zoomCtx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+    zoomCtx.lineWidth = 1;
+    // down arrow (mobile → stationary)
+    zoomCtx.beginPath();
+    zoomCtx.moveTo(ax - 4, mobileBot - 6);
+    zoomCtx.lineTo(ax - 4, mobileBot + 6);
+    zoomCtx.lineTo(ax - 6, mobileBot + 3);
+    zoomCtx.moveTo(ax - 4, mobileBot + 6);
+    zoomCtx.lineTo(ax - 2, mobileBot + 3);
+    zoomCtx.stroke();
+    // up arrow (stationary → mobile)
+    zoomCtx.beginPath();
+    zoomCtx.moveTo(ax + 4, mobileBot + 6);
+    zoomCtx.lineTo(ax + 4, mobileBot - 6);
+    zoomCtx.lineTo(ax + 2, mobileBot - 3);
+    zoomCtx.moveTo(ax + 4, mobileBot - 6);
+    zoomCtx.lineTo(ax + 6, mobileBot - 3);
+    zoomCtx.stroke();
+  }
+
+  // Draw molecules
+  let mobileCount = 0, statCount = 0;
+  zoomMolecules[ti].forEach(zm => {
+    if (zm.phase === 0) mobileCount++;
+    else statCount++;
+  });
+
+  zoomMolecules[ti].forEach(zm => {
+    let mx, my;
+    if (zm.phase === 0) {
+      // mobile: x is localX (0..1), y in mobile region
+      mx = x + 10 + zm.localX * (w - 20);
+      my = mobileTop + 12 + zm.localY * (mobileH - 16);
+    } else {
+      // stationary
+      mx = x + 10 + zm.localX * (w - 20);
+      my = statTop + 8 + zm.localY * (statH - 14);
+    }
+    // halo
+    const halo = zoomCtx.createRadialGradient(mx, my, 0, mx, my, 7);
+    halo.addColorStop(0, type.glow + 'aa');
+    halo.addColorStop(1, 'rgba(0,0,0,0)');
+    zoomCtx.fillStyle = halo;
+    zoomCtx.beginPath();
+    zoomCtx.arc(mx, my, 7, 0, Math.PI * 2);
+    zoomCtx.fill();
+    // core
+    zoomCtx.fillStyle = type.color;
+    zoomCtx.beginPath();
+    zoomCtx.arc(mx, my, 2.8, 0, Math.PI * 2);
+    zoomCtx.fill();
+  });
+
+  // Stats below
+  const statsY = colBot + 8;
+  zoomCtx.fillStyle = '#b0b8c8';
+  zoomCtx.font = '10px sans-serif';
+  zoomCtx.textAlign = 'left';
+  zoomCtx.fillText(`mobile: ${mobileCount}  ·  stat: ${statCount}`, x, statsY);
+
+  const total = mobileCount + statCount;
+  const mobFrac = total > 0 ? (mobileCount / total) : 0;
+  const statFrac = total > 0 ? (statCount / total) : 0;
+  const k = retentionFactors[ti];
+  const expectedStatFrac = k / (1 + k);
+  const vEff = FLOW_SPEED / (1 + k);
+
+  zoomCtx.fillStyle = '#8b95a8';
+  zoomCtx.font = '9px sans-serif';
+  zoomCtx.fillText(`f_mobile = ${mobFrac.toFixed(2)}  (theory ${1/(1+k) >= 1 ? '1.00' : (1/(1+k)).toFixed(2)})`, x, statsY + 14);
+  zoomCtx.fillText(`f_stat   = ${statFrac.toFixed(2)}  (theory ${expectedStatFrac.toFixed(2)})`, x, statsY + 26);
+  zoomCtx.fillText(`v_eff = v_m / (1+k) = ${vEff.toFixed(2)} px/f`, x, statsY + 38);
+}
+
+/* ===================================================================== *
+ *  Draw plot (chromatogram)
+ * ===================================================================== */
+function drawPlot() {
+  const w = plotCanvas._logicalW, h = plotCanvas._logicalH;
+  const padL = 50, padR = 14, padT = 12, padB = 30;
+  const plotW = w - padL - padR, plotH = h - padT - padB;
+
+  plotCtx.fillStyle = '#070a1c';
+  plotCtx.fillRect(0, 0, w, h);
+
+  plotCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+  plotCtx.lineWidth = 1;
+  for (let x = padL; x <= w - padR; x += 50) { plotCtx.beginPath(); plotCtx.moveTo(x, padT); plotCtx.lineTo(x, h - padB); plotCtx.stroke(); }
+  for (let y = padT; y <= h - padB; y += 25) { plotCtx.beginPath(); plotCtx.moveTo(padL, y); plotCtx.lineTo(w - padR, y); plotCtx.stroke(); }
+
+  plotCtx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+  plotCtx.lineWidth = 1.5;
+  plotCtx.beginPath();
+  plotCtx.moveTo(padL, padT); plotCtx.lineTo(padL, h - padB); plotCtx.lineTo(w - padR, h - padB);
+  plotCtx.stroke();
+
+  plotCtx.save();
+  plotCtx.translate(14, (padT + h - padB) / 2);
+  plotCtx.rotate(-Math.PI / 2);
+  plotCtx.fillStyle = '#8b95a8';
+  plotCtx.font = '11px sans-serif';
+  plotCtx.textAlign = 'center';
+  plotCtx.fillText('Detector Signal (mV)', 0, 0);
+  plotCtx.restore();
+
+  plotCtx.fillStyle = '#8b95a8';
+  plotCtx.font = '11px sans-serif';
+  plotCtx.textAlign = 'center';
+  plotCtx.fillText('Retention Time (s)', padL + plotW / 2, h - 4);
+
+  const totalSimFrames = 1700;
+  const maxSeconds = totalSimFrames / 60;
+  const currentSeconds = time / 60;
+  const viewMax = Math.max(maxSeconds * 0.15, currentSeconds + maxSeconds * 0.1);
+  const timeScale = plotW / viewMax;
+
+  plotCtx.fillStyle = '#5a6478';
+  plotCtx.font = '10px sans-serif';
+  plotCtx.textAlign = 'center';
+  const tickStep = viewMax > 25 ? 5 : (viewMax > 10 ? 2 : 1);
+  for (let t = 0; t <= viewMax; t += tickStep) {
+    const tx = padL + t * timeScale;
+    if (tx > w - padR) break;
+    plotCtx.fillText(t.toString(), tx, h - padB + 14);
+    plotCtx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    plotCtx.beginPath(); plotCtx.moveTo(tx, h - padB); plotCtx.lineTo(tx, h - padB + 4); plotCtx.stroke();
+  }
+
+  // Gradient ramp overlay (if gradient mode)
+  if (elution === 'gradient') {
+    const gradPath = plotCtx.createLinearGradient(padL, 0, padL + plotW, 0);
+    gradPath.addColorStop(0, 'rgba(100, 160, 255, 0.10)');
+    gradPath.addColorStop(1, 'rgba(255, 180, 80, 0.10)');
+    plotCtx.fillStyle = gradPath;
+    plotCtx.fillRect(padL, padT, plotW, plotH);
+    plotCtx.strokeStyle = 'rgba(255, 180, 80, 0.4)';
+    plotCtx.lineWidth = 1;
+    plotCtx.setLineDash([3, 3]);
+    plotCtx.beginPath();
+    for (let i = 0; i <= 100; i++) {
+      const t = (i / 100) * viewMax;
+      const x = padL + t * timeScale;
+      const pctB = getMobilePhasePercentB(t * 60);
+      const y = padT + plotH - (pctB / 100) * plotH * 0.3;
+      if (i === 0) plotCtx.moveTo(x, y); else plotCtx.lineTo(x, y);
+    }
+    plotCtx.stroke();
+    plotCtx.setLineDash([]);
+    plotCtx.fillStyle = 'rgba(255, 180, 80, 0.7)';
+    plotCtx.font = '9px sans-serif';
+    plotCtx.textAlign = 'left';
+    plotCtx.fillText('%B ramp', padL + 4, padT + 12);
+  }
+
+  // Histogram of detections
+  const binSize = 0.05;
+  const numBins = Math.ceil(viewMax / binSize);
+  const binsByType = MOLECULE_TYPES.map(() => new Array(numBins).fill(0));
+  signalData.forEach(d => {
+    const tSec = d.time / 60;
+    const bin = Math.floor(tSec / binSize);
+    if (bin >= 0 && bin < numBins) binsByType[d.type][bin]++;
+  });
+
+  const sigma = 3;
+  const smooth = binsByType.map(bins => {
+    const out = new Array(numBins).fill(0);
+    for (let i = 0; i < numBins; i++) {
+      let s = 0;
+      for (let j = -3 * sigma; j <= 3 * sigma; j++) {
+        const idx = i + j;
+        if (idx >= 0 && idx < numBins) s += bins[idx] * Math.exp(-(j * j) / (2 * sigma * sigma));
+      }
+      out[i] = s / (sigma * Math.sqrt(2 * Math.PI));
+    }
+    return out;
+  });
+
+  let maxSignal = 0.5;
+  smooth.forEach(bins => bins.forEach(v => { if (v > maxSignal) maxSignal = v; }));
+  const signalScale = plotH / (maxSignal * 1.2);
+
+  // Total filled area
+  plotCtx.fillStyle = 'rgba(77, 171, 247, 0.10)';
+  plotCtx.beginPath();
+  plotCtx.moveTo(padL, h - padB);
+  for (let i = 0; i < numBins; i++) {
+    const t = i * binSize;
+    const total = smooth.reduce((s, bins) => s + bins[i], 0);
+    const x = padL + t * timeScale;
+    const y = h - padB - total * signalScale;
+    plotCtx.lineTo(x, y);
+  }
+  plotCtx.lineTo(padL + numBins * binSize * timeScale, h - padB);
+  plotCtx.closePath();
+  plotCtx.fill();
+
+  // Per-type curves
+  MOLECULE_TYPES.forEach((type, ti) => {
+    plotCtx.strokeStyle = type.color;
+    plotCtx.lineWidth = 1.8;
+    plotCtx.shadowColor = type.color;
+    plotCtx.shadowBlur = 6;
+    plotCtx.beginPath();
+    let started = false;
+    for (let i = 0; i < numBins; i++) {
+      const t = i * binSize;
+      const x = padL + t * timeScale;
+      const y = h - padB - smooth[ti][i] * signalScale;
+      if (!started) { plotCtx.moveTo(x, y); started = true; }
+      else plotCtx.lineTo(x, y);
+    }
+    plotCtx.stroke();
+    plotCtx.shadowBlur = 0;
+  });
+
+  // Peak labels
+  MOLECULE_TYPES.forEach((type, ti) => {
+    if (!peakStarted[ti]) return;
+    let maxIdx = -1, maxVal = 0;
+    for (let i = 0; i < numBins; i++) {
+      if (smooth[ti][i] > maxVal) { maxVal = smooth[ti][i]; maxIdx = i; }
+    }
+    if (maxIdx >= 0 && maxVal > 0.1) {
+      const t = maxIdx * binSize;
+      const x = padL + t * timeScale;
+      const y = h - padB - maxVal * signalScale;
+      plotCtx.fillStyle = type.color;
+      plotCtx.font = 'bold 11px sans-serif';
+      plotCtx.textAlign = 'center';
+      plotCtx.fillText(type.name, x, y - 6);
+    }
+  });
+
+  // Time cursor
+  const cursorX = padL + currentSeconds * timeScale;
+  if (cursorX < w - padR) {
+    plotCtx.strokeStyle = 'rgba(100, 243, 161, 0.7)';
+    plotCtx.lineWidth = 1.2;
+    plotCtx.setLineDash([5, 4]);
+    plotCtx.beginPath();
+    plotCtx.moveTo(cursorX, padT);
+    plotCtx.lineTo(cursorX, h - padB);
+    plotCtx.stroke();
+    plotCtx.setLineDash([]);
+    plotCtx.fillStyle = '#64f3a1';
+    plotCtx.font = '10px sans-serif';
+    plotCtx.textAlign = 'left';
+    plotCtx.fillText(currentSeconds.toFixed(1) + 's', cursorX + 4, padT + 10);
+  }
+}
+
+/* ===================================================================== *
+ *  Stage / info / stats
+ * ===================================================================== */
+function updateStages() {
+  const totalDetected = signalData.length;
+  const totalMolecules = molecules.length;
+  let active = 'injection';
+
+  if (time < 20) active = 'injection';
+  else if (time < 80) active = 'phases';
+  else if (totalDetected < totalMolecules * 0.25) active = 'separation';
+  else if (totalDetected < totalMolecules) active = 'detection';
+  else active = 'plotter';
+
+  ['injection', 'phases', 'separation', 'detection', 'plotter'].forEach(s => {
+    document.getElementById('stage-' + s).classList.toggle('active', s === active);
+  });
+
+  const modeText = mode === 'GC' ? 'gas (He/N₂)' : 'liquid (MeCN/H₂O)';
+  const elutionText = elution === 'isocratic' ? 'isocratic' : 'gradient';
+
+  const info = {
+    injection: {
+      title: `1. Injection  —  ${mode === 'GC' ? 'GC' : 'HPLC'} (${elutionText})`,
+      text: `A small volume of the mixed sample is pushed through the septum by a syringe and introduced at the head of the column as a narrow, concentrated band. All four components (A, B, C, D) enter simultaneously. In ${mode === 'GC' ? 'GC the sample is vaporized in a heated inlet before entering the gas column' : 'HPLC the sample stays in liquid phase throughout'}.${elution === 'gradient' ? ' A gradient program will ramp the mobile phase strength over the run, accelerating late-eluting components.' : ''}`
+    },
+    phases: {
+      title: `2. Mobile & Stationary Phases`,
+      text: `The mobile phase (${modeText}) carries the sample forward (left → right). The stationary phase (${mode === 'GC' ? 'a thin polymer film coated on the capillary wall' : 'C18-bonded silica particles packed in the column'}) interacts with analyte molecules via partitioning / adsorption. Each component has its own equilibrium constant K between the two phases — visible in the molecular view below.`
+    },
+    separation: {
+      title: `3. Separation`,
+      text: `Components with low K spend most time in the mobile phase and elute first (A — red). Components with high K are repeatedly retained and travel slowly (D — yellow). The original mixed band resolves into distinct, pure bands. ${elution === 'gradient' ? 'Under gradient elution, the ramping %B lowers effective K for late components, sharpening their bands as they elute.' : 'Under isocratic conditions, late-eluting bands broaden more (longer time on column = more diffusion).'}`
+    },
+    detection: {
+      title: `4. Detection`,
+      text: `A detector at the column outlet (${mode === 'GC' ? 'FID/TCD/MS' : 'UV/DAD/MS'}) measures analyte concentration in real time. As each separated band reaches the detector, the signal rises, peaks, and falls — one peak per component. Retention time identifies the component; peak area quantifies it.`
+    },
+    plotter: {
+      title: `5. Chromatogram Plotter`,
+      text: `The detector signal is continuously plotted against time, producing the chromatogram — the final, interpretable record of the separation. Each peak is labeled by its retention time (identity) and area (quantity). ${elution === 'gradient' ? 'Note how the gradient produces sharper, more uniform peak widths compared to isocratic.' : 'Under isocratic elution, later peaks are broader because they spent more time diffusing on the column.'}`
+    },
+  };
+
+  document.getElementById('infoTitle').textContent = info[active].title;
+  document.getElementById('infoText').textContent = info[active].text;
+
+  document.getElementById('statTime').textContent = (time / 60).toFixed(1) + ' s';
+  document.getElementById('statActive').textContent = molecules.filter(m => m.active).length;
+  document.getElementById('statDetected').textContent = signalData.length;
+  document.getElementById('statPeaks').textContent = peakEnded.filter(x => x).length;
+  document.getElementById('statVflow').textContent = (FLOW_SPEED * speed).toFixed(2);
+  document.getElementById('mainCanvasTitle').textContent =
+    `Chromatographic system — ${mode === 'GC' ? 'GC (gas)' : 'HPLC (liquid)'} mode · ${elution}`;
+  document.getElementById('modeLabel').textContent = MODES[mode].mobile;
+
+  // Gradient bar
+  const gbar = document.getElementById('gradientBar');
+  const glabel = document.getElementById('gradientLabel');
+  if (elution === 'gradient') {
+    gbar.classList.add('visible');
+    glabel.style.display = 'flex';
+    const pct = getMobilePhasePercentB(time);
+    gbar.style.setProperty('--grad-pos', `${Math.min(100, pct)}%`);
+    document.getElementById('gradPctB').textContent = pct + '%';
+  } else {
+    gbar.classList.remove('visible');
+    glabel.style.display = 'none';
+  }
+}
+
+/* ===================================================================== *
+ *  Legend
+ * ===================================================================== */
+function setupLegend() {
+  document.getElementById('legend').innerHTML = MOLECULE_TYPES.map(t =>
+    `<div class="legend-item">
+      <div class="legend-dot" style="background:${t.color};box-shadow:0 0 8px ${t.color}"></div>
+      ${t.name} — ${t.label}
+    </div>`
+  ).join('');
+}
+
+/* ===================================================================== *
+ *  Animation loop
+ * ===================================================================== */
+function loop() {
+  const now = performance.now();
+  let dt = (now - lastFrameTime) / 16.667;
+  if (dt > 3) dt = 3;
+  lastFrameTime = now;
+
+  step(dt);
+
+  drawMain();
+  drawZoom();
+  drawPlot();
+  updateStages();
+  updatePlayButton();
+
+  requestAnimationFrame(loop);
+}
+
+/* ===================================================================== *
+ *  Event handlers
+ * ===================================================================== */
+document.getElementById('playBtn').addEventListener('click', () => {
+  const activeCount = molecules.filter(m => m.active).length;
+  if (activeCount === 0 && time > 5) {
+    reset();
+    playing = true;
+  } else {
+    playing = !playing;
+  }
+  updatePlayButton();
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => { reset(); });
+
+document.getElementById('speedSlider').addEventListener('input', (e) => {
+  speed = parseFloat(e.target.value);
+  document.getElementById('speedLabel').textContent = speed.toFixed(2) + '×';
+});
+
+// Mode toggle (GC vs HPLC)
+document.querySelectorAll('#modeToggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#modeToggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    mode = btn.dataset.mode;
+    reset();
+  });
+});
+
+// Elution toggle
+document.querySelectorAll('#elutionToggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#elutionToggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    elution = btn.dataset.elution;
+    reset();
+  });
+});
+
+// Retention factor sliders
+for (let i = 0; i < 4; i++) {
+  const slider = document.getElementById(`kSlider-${i}`);
+  const label = document.getElementById(`kLabel-${i}`);
+  slider.addEventListener('input', (e) => {
+    retentionFactors[i] = parseFloat(e.target.value);
+    label.textContent = retentionFactors[i].toFixed(2);
+    // Rebalance zoom molecules' phases when k changes
+    initZoomMolecules();
+  });
+}
+
+document.getElementById('resetKBtn').addEventListener('click', () => {
+  retentionFactors = [...DEFAULT_K];
+  for (let i = 0; i < 4; i++) {
+    document.getElementById(`kSlider-${i}`).value = retentionFactors[i];
+    document.getElementById(`kLabel-${i}`).textContent = retentionFactors[i].toFixed(2);
+  }
+  initZoomMolecules();
+  reset();
+});
+
+/* ===================================================================== *
+ *  Init
+ * ===================================================================== */
+setupLegend();
+reset();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
